@@ -62,15 +62,10 @@ export default {
   },
   computed: {
     lastMessage() {
-      if (
-        this.$store.getters.getPreviews.filter(x => x.id == this.identifier)
-          .length == 0
-      ) {
+      if (this.$store.getters.getPreviews.filter(x => x.id == this.identifier).length == 0) {
         return "No Preview";
       } else {
-        return this.$store.getters.getPreviews.filter(
-          x => x.id == this.identifier
-        )[0].text;
+        return this.$store.getters.getPreviews.filter(x => x.id == this.identifier)[0].text;
       }
     },
     lastMessageTime() {
@@ -88,9 +83,9 @@ export default {
       }
     },
     identifier() {
-      if (this.chat.displayName) return this.chat.displayName;
-      if (this.chat.recipientId) return this.chat.recipientId;
-      return this.chat.id;
+      const handles = this.$store.getters.getHandlesForChat(this.chat.id);
+
+      return handles.join(", ");
     }
   },
   props: {

@@ -34,9 +34,10 @@ const store = new Vuex.Store({
 
     targetId: -1,
 
+    handles: {},
+    chats: [],
     messages: [],
-    previews: [],
-    recentChats: []
+    previews: []
   },
   getters: {
     dashboardPaneSize: state => {
@@ -84,12 +85,27 @@ const store = new Vuex.Store({
       return state.targetId;
     },
 
-    recentChats: state => {
-      return state.recentChats;
+    chats: state => {
+      return state.chats;
+    },
+
+    getHandlesForChat: state => (chatId) => {
+      const chat = state.chats.find((chat) => chat.id == chatId);
+
+      if (chat) {
+        const handles = chat.handles.map((handleId) => {
+          return (state.handles[handleId]) ? state.handles[handleId].id : 'Unknown';
+        })
+
+        return handles;
+      }
+
+      return ['Unknown']
     },
 
     targetMessages: state => {
       if (!state.messages) return [];
+
       return state.messages.sort((a, b) => (a.date > b.date ? 1 : -1));
     },
 
@@ -102,13 +118,14 @@ const store = new Vuex.Store({
     },
 
     contactList: state => {
-      return state.recentChats.sort(function(a, b) {
+      return state.chats.sort(function(a, b) {
         return b.lastReadTimestamp - a.lastReadTimestamp;
       });
     },
 
     getTargetHandle: state => {
       if (state.messages[0] == undefined) return "";
+
       return state.messages[0].handle;
     },
 
@@ -169,6 +186,23 @@ const store = new Vuex.Store({
       }, 300);
     },
 
+    handles: (state, p) => {
+      state.console.unshift({
+        timestamp: Date.now(),
+        line: "Received handles"
+      });
+
+      state.handles = p.data.reduce((acc, handle) => {
+        const handleId = handle.handle
+
+        acc[handleId] = handle;
+
+        return acc;
+      }, {});
+
+      state.loading = false;
+    },
+
     // called when recent contacts are provided
     recentContacts: (state, p) => {
       window.console.log(p);
@@ -178,10 +212,10 @@ const store = new Vuex.Store({
         line: "Recieved recent contacts, sorting..."
       });
 
-      state.recentChats = p.data;
+      state.chats = p.data;
 
       window.console.log(
-        `store recentContacts just saved: ${state.recentChats.length}`
+        `store recentContacts just saved: ${state.chats.length}`
       );
       // p.data.forEach(pp => {
 
@@ -199,11 +233,12 @@ const store = new Vuex.Store({
     },
 
     // called when recent contacts are provided
-    recentChats: (state, p) => {
+    recentMessages: (state, p) => {
       state.console.unshift({
         timestamp: Date.now(),
         line: "Recieved recent messages, sorting..."
       });
+
       state.messages = p.data;
 
       if (p.data[0]) {
@@ -263,12 +298,14 @@ const store = new Vuex.Store({
       ) {
         state.settings.account.relay.value = creds.relay;
         state.settings.account.uuid.value = creds.uuid;
+
         saveSettingsFile(state.settings);
       } else {
         socket = io(state.settings.account.relay.value);
       }
 
       state.loading = true;
+
       state.console.unshift({
         timestamp: Date.now(),
         line: "Trying to login..."
@@ -281,10 +318,12 @@ const store = new Vuex.Store({
           // login failed
           state.socket.auth = false;
           state.socket.authError = "Login failed.";
+
           state.console.unshift({
             timestamp: Date.now(),
             line: "Login failed"
           });
+
           state.loading = false;
         }
 
@@ -293,9 +332,11 @@ const store = new Vuex.Store({
             timestamp: Date.now(),
             line: "Login was successful"
           });
+
           state.socket.auth = true;
           state.socket.connected = true;
           state.socket.authError = "";
+
           clientSetName(creds.uuid);
         }
       });
@@ -313,9 +354,13 @@ const store = new Vuex.Store({
       state.socket.latency = ms;
     },
 
-    targetId: (state, i) => {
-      state.targetId = i.id;
-      clientGetRecentChatsFromId(i);
+    targetId: (state, chat) => {
+      const chatId = chat.id
+
+      state.targetId = chatId;
+
+      clientGetRecentMessagesByChat(chatId);
+
       //   state.recentChats.forEach(p => {
       //     if (p.handle_id == i.handle_id) {
       //       p.is_unread = false;
@@ -333,9 +378,12 @@ const store = new Vuex.Store({
 
     newMessage: (state, l) => {
       state.loading = true;
-      state.recentChats.forEach(ch => {
+
+      state.chats.forEach(ch => {
         if (ch.handle !== l.handle) return;
+
         ch.unread = true;
+
         ch.messages.push({
           from: "them",
           timestamp: "0s",
@@ -350,9 +398,12 @@ const store = new Vuex.Store({
 
     recentFill: (state, l) => {
       state.loading = true;
-      state.recentChats.forEach(ch => {
+
+      state.chats.forEach(ch => {
         if (ch.handle !== l.handle) return;
+
         ch.unread = true;
+
         ch.messages.push({
           from: "them",
           timestamp: "0s",
@@ -393,10 +444,25 @@ const clientSetName = n => {
   });
 };
 
+const clientGetHandles = n => {
+  socket.emit("raw", {
+    type: "handles"
+  });
+};
+
 const clientGetRecentContacts = n => {
   socket.emit("raw", {
     type: "recentContacts",
     id: 0
+  });
+};
+
+const clientGetRecentMessagesByChat = (chatId) => {
+  console.log(`Getting recent messages for chat ${chatId}`);
+
+  socket.emit("raw", {
+    type: "recentMessages",
+    id: chatId
   });
 };
 
@@ -408,16 +474,9 @@ const clientSendMessage = n => {
   });
 };
 
-const clientGetRecentChatsFromId = n => {
-  console.log(`Getting recent chats... for ${n.handle_id}`);
-  socket.emit("raw", {
-    type: "recentChats",
-    id: n.handle_id
-  });
-};
-
 const clientInit = n => {
   console.log("Initializing...");
+
   router.push("/").catch(() => {});
 
   socket.on("connect", s => {
@@ -456,6 +515,7 @@ const clientInit = n => {
     store.commit(s.type, s);
   });
 
+  clientGetHandles();
   clientGetRecentContacts();
 };
 

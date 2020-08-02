@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- 
+    <!--
     <section class="flex justify-between bg-gray-200 border-b border-gray-300 absolute right-0 px-3 w-full h-auto py-2">
         <p class="select-none text-md my-auto inline-block">{{ handleName }}</p>
         <div class="flex justify-start w-auto">
