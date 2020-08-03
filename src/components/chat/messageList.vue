@@ -28,6 +28,7 @@
               "
             ></aside>
             {{ msg.text }}
+            <img v-for="attachment in msg.attachments" :src="getAttachmentUrl(attachment)" />
           </div>
         </div>
       </div>
@@ -54,9 +55,23 @@ export default {
       return this.$store.getters.targetMessages;
     },
     tm() {
-      return this.$store.getters.targetMessages
-        ? this.$store.getters.targetMessages
-        : [];
+
+      /*
+       * Load attachments from the client.
+       *
+       */
+
+      const messages = this.$store.getters.targetMessages;
+
+      if (messages) {
+        messages.forEach((message) => {
+          message.attachments.forEach((filename) => this.$store.getters.getAttachment(filename));
+        });
+
+        return messages;
+      }
+
+      return [];
     }
   },
   watch: {
@@ -79,6 +94,15 @@ export default {
     scrollToBottom: function(e) {
       if (!this.$refs.chatWindow) return;
       this.$refs.chatWindow.scrollTop = this.$refs.chatWindow.scrollHeight;
+    },
+    getAttachmentUrl: function(filename) {
+      const attachment = this.$store.getters.getAttachment(filename);
+
+      if (!attachment || attachment.loading) {
+        return '';
+      }
+
+      return `data:image/jpeg;base64,${attachment.data}`;
     }
   }
 };

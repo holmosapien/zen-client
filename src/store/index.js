@@ -37,7 +37,8 @@ const store = new Vuex.Store({
     handles: {},
     chats: [],
     messages: [],
-    previews: []
+    previews: [],
+    attachments: {}
   },
   getters: {
     dashboardPaneSize: state => {
@@ -93,9 +94,9 @@ const store = new Vuex.Store({
       const chat = state.chats.find((chat) => chat.id == chatId);
 
       if (chat) {
-        const handles = chat.handles.map((handleId) => {
-          return (state.handles[handleId]) ? state.handles[handleId].id : 'Unknown';
-        })
+        const handles = chat.handles.map((handleId) => (
+          (state.handles[handleId]) ? state.handles[handleId] : handleId
+        ));
 
         return handles;
       }
@@ -107,6 +108,19 @@ const store = new Vuex.Store({
       if (!state.messages) return [];
 
       return state.messages.sort((a, b) => (a.date > b.date ? 1 : -1));
+    },
+
+    getAttachment: state => (filename) => {
+      if (!state.attachments[filename]) {
+        state.attachments[filename] = {
+          loading: true,
+          data: undefined
+        };
+
+        clientGetAttachment(filename);
+      }
+
+      return state.attachments[filename];
     },
 
     getPreviews: state => {
@@ -193,9 +207,9 @@ const store = new Vuex.Store({
       });
 
       state.handles = p.data.reduce((acc, handle) => {
-        const handleId = handle.handle
+        const { handle: handleId, name } = handle;
 
-        acc[handleId] = handle;
+        acc[handleId] = name;
 
         return acc;
       }, {});
@@ -258,6 +272,15 @@ const store = new Vuex.Store({
       }
 
       state.loading = false;
+    },
+
+    fileTransfer: (state, p) => {
+      const { filename, buffer } = p;
+
+      state.attachments[filename] = {
+        loading: false,
+        data: buffer
+      };
     },
 
     // will save config file
@@ -463,6 +486,13 @@ const clientGetRecentMessagesByChat = (chatId) => {
   socket.emit("raw", {
     type: "recentMessages",
     id: chatId
+  });
+};
+
+const clientGetAttachment = (filename) => {
+  socket.emit("raw", {
+    type: "attachment",
+    filename
   });
 };
 
