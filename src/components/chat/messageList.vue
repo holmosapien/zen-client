@@ -28,7 +28,7 @@
               "
             ></aside>
             {{ msg.text }}
-            <img v-for="attachment in msg.attachments" :src="getAttachmentUrl(attachment)" />
+            <img v-for="filename in msg.attachments" class="attachment" :src="attachments[filename]" />
           </div>
         </div>
       </div>
@@ -54,18 +54,39 @@ export default {
     targetWatch() {
       return this.$store.getters.targetMessages;
     },
+    attachments() {
+      const attachments = this.$store.getters.attachments();
+
+      let processed = {};
+
+      Object.keys(attachments).forEach((filename) => {
+        const { loading, data } = attachments[filename];
+
+        if (loading || !data) {
+          processed[filename] = null;
+        } else {
+          processed[filename] = `data:image/jpeg;base64,${data}`;
+        }
+      })
+
+      return processed;
+    },
     tm() {
+      const messages = this.$store.getters.targetMessages;
+      const attachments = this.$store.getters.attachments;
 
       /*
-       * Load attachments from the client.
+       * Start fetching message attachments.
        *
        */
 
-      const messages = this.$store.getters.targetMessages;
-
       if (messages) {
         messages.forEach((message) => {
-          message.attachments.forEach((filename) => this.$store.getters.getAttachment(filename));
+          message.attachments.forEach((filename) => {
+            if (!attachments[filename]) {
+              this.$store.getters.attachment(filename);
+            }
+          })
         });
 
         return messages;
@@ -94,15 +115,6 @@ export default {
     scrollToBottom: function(e) {
       if (!this.$refs.chatWindow) return;
       this.$refs.chatWindow.scrollTop = this.$refs.chatWindow.scrollHeight;
-    },
-    getAttachmentUrl: function(filename) {
-      const attachment = this.$store.getters.getAttachment(filename);
-
-      if (!attachment || attachment.loading) {
-        return '';
-      }
-
-      return `data:image/jpeg;base64,${attachment.data}`;
     }
   }
 };
@@ -124,6 +136,11 @@ aside.msg-meta {
 
 .msg {
   display: inline-block;
+}
+
+.attachment {
+  margin-top: 1em;
+  margin-bottom: 1em;
 }
 
 .bubble {

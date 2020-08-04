@@ -90,7 +90,7 @@ const store = new Vuex.Store({
       return state.chats;
     },
 
-    getHandlesForChat: state => (chatId) => {
+    handlesForChat: state => (chatId) => {
       const chat = state.chats.find((chat) => chat.id == chatId);
 
       if (chat) {
@@ -110,7 +110,11 @@ const store = new Vuex.Store({
       return state.messages.sort((a, b) => (a.date > b.date ? 1 : -1));
     },
 
-    getAttachment: state => (filename) => {
+    attachments: state => () => {
+      return state.attachments;
+    },
+
+    attachment: state => (filename) => {
       if (!state.attachments[filename]) {
         state.attachments[filename] = {
           loading: true,
@@ -123,11 +127,11 @@ const store = new Vuex.Store({
       return state.attachments[filename];
     },
 
-    getPreviews: state => {
+    previews: state => {
       return state.previews;
     },
 
-    getTargetIdentifier: state => {
+    targetIdentifier: state => {
       return state.targetId;
     },
 
@@ -137,7 +141,7 @@ const store = new Vuex.Store({
       });
     },
 
-    getTargetHandle: state => {
+    targetHandle: state => {
       if (state.messages[0] == undefined) return "";
 
       return state.messages[0].handle;
@@ -277,10 +281,12 @@ const store = new Vuex.Store({
     fileTransfer: (state, p) => {
       const { filename, buffer } = p;
 
-      state.attachments[filename] = {
-        loading: false,
-        data: buffer
-      };
+      state.attachments = Object.assign({}, state.attachments, {
+        [filename]: {
+          loading: false,
+          data: buffer
+        }
+      });
     },
 
     // will save config file

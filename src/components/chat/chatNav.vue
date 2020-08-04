@@ -56,7 +56,7 @@ export default {
         : [];
     },
     handleName() {
-      return this.$store.getters.getTargetIdentifier;
+      return this.$store.getters.targetIdentifier;
     },
     cssAttachmentDrawerButton() {
       let c;

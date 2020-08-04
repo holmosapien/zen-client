@@ -62,28 +62,28 @@ export default {
   },
   computed: {
     lastMessage() {
-      if (this.$store.getters.getPreviews.filter(x => x.id == this.identifier).length == 0) {
+      if (this.$store.getters.previews.filter(x => x.id == this.identifier).length == 0) {
         return "No Preview";
       } else {
-        return this.$store.getters.getPreviews.filter(x => x.id == this.identifier)[0].text;
+        return this.$store.getters.previews.filter(x => x.id == this.identifier)[0].text;
       }
     },
     lastMessageTime() {
       if (
-        this.$store.getters.getPreviews.filter(x => x.id == this.identifier)
+        this.$store.getters.previews.filter(x => x.id == this.identifier)
           .length == 0
       ) {
         return "";
       } else {
         return moment(
-          this.$store.getters.getPreviews.filter(
+          this.$store.getters.previews.filter(
             x => x.id == this.identifier
           )[0].date
         ).fromNow();
       }
     },
     identifier() {
-      const handles = this.$store.getters.getHandlesForChat(this.chat.id);
+      const handles = this.$store.getters.handlesForChat(this.chat.id);
 
       return handles.join(", ");
     }
